@@ -1,0 +1,28 @@
+version: '3.7'
+
+networks:
+  traefik:
+    name: traefik
+
+services:
+
+  test-vue:
+    container_name: test-vue
+    hostname: test-vue
+    networks:
+      - traefik
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - '.:/app'
+      - '/app/node_modules'
+    ports:
+      - '8081:8080'
+    labels:
+      - traefik.http.test-vue.home.rule=Host(`vuejs.docker.localhost`)
+      - traefik.http.test-vue.home.entrypoints=http
+      - traefik.http.test-vue.home.middlewares=redirect@file
+      - traefik.http.test-vue.homes.rule=Host(`vuejs.docker.localhost`)
+      - traefik.http.test-vue.homes.entrypoints=https
+      - traefik.http.test-vue.homes.tls=true
