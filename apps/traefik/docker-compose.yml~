@@ -1,0 +1,49 @@
+version: '3.7'
+
+networks:
+  traefik:
+    name: traefik
+
+services:
+  traefik:
+    image: traefik:v2.2
+    container_name: traefik
+    networks:
+      - traefik
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./conf/traefik.toml:/etc/traefik/traefik.toml:ro
+      - ./conf/traefik.config.toml:/etc/traefik/traefik.config.toml:ro
+      - ./certs:/etc/certs:ro
+    labels:
+      - traefik.http.services.ombi.loadbalancer.server.scheme=https
+      - traefik.http.routers.traefik.rule=Host(`traefik.docker.localhost`)
+      - traefik.http.routers.traefik.entrypoints=http
+      - traefik.http.routers.traefik.middlewares=https_redirect
+      - traefik.http.routers.traefiks.rule=Host(`traefik.docker.localhost`)
+      - traefik.http.routers.traefik_https.middlewares=traefik-auth
+      - traefik.http.middlewares.traefik-auth.basicauth.users=admin:admin
+      - traefik.http.routers.traefiks.entrypoints=https
+      - traefik.http.routers.traefiks.tls=true
+      - traefik.http.routers.traefiks.service=api@internal
+      - traefik.http.middlewares.https_redirect.redirectscheme.scheme=https
+      - traefik.http.middlewares.https_redirect.redirectscheme.permanent=true
+
+  whoami:
+    image: containous/whoami
+    container_name: whoami
+    networks:
+      - traefik
+    labels:
+      - traefik.http.routers.whoami.rule=Host(`whoami.docker.localhost`)
+      - traefik.http.routers.whoami.entrypoints=http
+      - traefik.http.routers.whoami.middlewares=redirect@file
+      - traefik.http.routers.whoamis.rule=Host(`whoami.docker.localhost`)
+      - traefik.http.routers.whoamis.entrypoints=https
+      - traefik.http.routers.whoamis.tls=true
+      - traefik.http.middlewares.whoami.redirectscheme.scheme=https
+      - traefik.http.middlewares.whoami.redirectscheme.permanent=true
