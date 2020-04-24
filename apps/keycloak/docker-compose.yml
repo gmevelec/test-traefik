@@ -1,0 +1,55 @@
+version: "3.4"
+
+services:
+  keycloak_db:
+    image: postgres
+    environment:
+        - POSTGRES_DB=keycloak
+        - POSTGRES_USER=dev
+        - POSTGRES_PASSWORD=dev
+        - POSTGRES_ROOT_PASSWORD=dev
+    networks:
+      traefik:
+    ports:
+      - "25432:5432"
+    volumes:
+      - ./data:/var/lib/postgresql/data
+    labels:
+      - "traefik.enable=false"
+
+  keycloak:
+    image: jboss/keycloak:latest
+    hostname: keycloak
+    environment:
+      - DB_VENDOR=POSTGRES
+      - DB_ADDR=keycloak_db
+      - DB_DATABASE=keycloak
+      - DB_PORT=5432
+      - DB_USER=dev
+      - DB_SCHEMA=public
+      - DB_PASSWORD=dev
+      - PROXY_ADDRESS_FORWARDING=true
+      - KEYCLOAK_LOGLEVEL=INFO
+      - KEYCLOAK_USER=admin
+      - KEYCLOAK_PASSWORD=admin
+    networks:
+      traefik:
+    labels:
+      - traefik.http.routers.keycloak.rule=Host(`auth.docker.localhost`)
+      - traefik.http.routers.keycloak.entrypoints=http
+      - traefik.http.routers.keycloak.middlewares=redirect@file
+      - traefik.http.routers.keycloaks.rule=Host(`auth.docker.localhost`)
+      - traefik.http.routers.keycloaks.entrypoints=https
+      - traefik.http.routers.keycloaks.tls=true
+      - traefik.http.middlewares.keycloak.redirectscheme.scheme=https
+      - traefik.http.middlewares.keycloak.redirectscheme.permanent=true
+
+      # - traefik.port=8443
+      # - traefik.frontend.rule=Host:auth.idocker.hacking-lab.com
+      # - traefik.protocol=https
+    command: ["-b", "0.0.0.0", "-Dkeycloak.profile.feature.docker=enabled"]
+
+
+networks:
+  traefik:
+    external: true
